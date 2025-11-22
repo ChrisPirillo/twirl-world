@@ -1,0 +1,1061 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Twirl World</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Experience Twirl World, an interactive WebGL generative art app. Create mesmerizing 4K wallpapers with customizable psychedelic swirls and colors.">
+    <meta name="keywords" content="Twirl World, WebGL, Generative Art, 4K Wallpaper, Shader Editor, Interactive Visualizer, HTML5 Canvas">
+    <meta name="author" content="Chris Pirillo">
+    <meta name="theme-color" content="#000000">
+
+    <!-- Canonical URL -->
+    <link rel="canonical" href="https://pirillo.com/arcade/twirl-world.html">
+
+    <!-- Open Graph / Facebook -->
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://pirillo.com/arcade/twirl-world.html">
+    <meta property="og:title" content="Twirl World - Interactive WebGL Art">
+    <meta property="og:description" content="Create mesmerizing swirling patterns and 4K wallpapers in this interactive WebGL arcade experience.">
+    <meta property="og:image" content="https://pirillo.com/arcade/images/twirl-world.png">
+
+    <!-- Twitter -->
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:url" content="https://pirillo.com/arcade/twirl-world.html">
+    <meta name="twitter:title" content="Twirl World">
+    <meta name="twitter:description" content="Create mesmerizing swirling patterns and 4K wallpapers in this interactive WebGL arcade experience.">
+    <meta name="twitter:image" content="https://pirillo.com/arcade/images/twirl-world.png">
+    <meta name="twitter:creator" content="@ChrisPirillo">
+
+    <!-- JSON-LD Structured Data -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "WebApplication",
+      "name": "Twirl World",
+      "url": "https://pirillo.com/arcade/twirl-world.html",
+      "image": "https://pirillo.com/arcade/images/twirl-world.png",
+      "description": "Interactive WebGL visualizer creating mesmerizing swirling patterns and 4K wallpapers.",
+      "genre": "Generative Art",
+      "author": {
+        "@type": "Person",
+        "name": "Chris Pirillo",
+        "sameAs": "https://twitter.com/ChrisPirillo"
+      },
+      "applicationCategory": "MultimediaApplication",
+      "operatingSystem": "Any"
+    }
+    </script>
+
+    <!-- Google Tag Manager / Analytics -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-1CQ4D3VQ3L"></script>
+    <script>
+      window.dataLayer = window.dataLayer || [];
+      function gtag(){dataLayer.push(arguments);}
+      gtag('js', new Date());
+      gtag('config', 'G-1CQ4D3VQ3L');
+    </script>
+
+    <style>
+        /* Critical CSS kept inline for performance (LCP) */
+        body, html {
+            height: 100vh;
+            width: 100vw;
+            margin: 0;
+            overflow: hidden;
+            background-color: #000;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            color: #fff;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
+        canvas {
+            display: block;
+            position: absolute;
+            top: 0;
+            left: 0;
+            z-index: 1;
+        }
+        
+        /* --- Settings Panel --- */
+        #settings-panel {
+            position: absolute;
+            top: 0;
+            right: -320px; /* Start off-screen */
+            width: 300px;
+            height: 100vh;
+            background-color: rgba(0, 0, 0, 0.85);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            z-index: 10;
+            transition: transform 0.3s ease-in-out;
+            box-shadow: -5px 0 15px rgba(0,0,0,0.5);
+            border-left: 1px solid rgba(255, 255, 255, 0.1);
+            overflow-y: auto;
+        }
+        #settings-panel.open {
+            transform: translateX(-320px);
+        }
+        #settings-toggle {
+            position: absolute;
+            top: 15px;
+            right: 15px;
+            z-index: 11;
+            cursor: pointer;
+            width: 44px;
+            height: 44px;
+            background-color: rgba(0, 0, 0, 0.5);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: background-color 0.2s ease;
+        }
+        #settings-toggle:hover {
+            background-color: rgba(0, 0, 0, 0.8);
+        }
+        #settings-toggle svg {
+            width: 24px;
+            height: 24px;
+            stroke: #fff;
+            stroke-width: 2;
+            transition: transform 0.3s ease;
+        }
+        #settings-toggle.open svg {
+             transform: rotate(90deg);
+        }
+
+        .settings-content {
+            padding: 20px;
+            padding-top: 70px; /* Space for toggle button */
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+        h2 {
+            margin: 0;
+            padding: 0;
+            font-size: 1.2rem;
+            font-weight: 600;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            padding-bottom: 10px;
+        }
+        .control-group {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+        .slider-container {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
+        .slider-label {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.9rem;
+            color: #eee;
+        }
+        .slider-label .value {
+            font-weight: 600;
+            color: #fff;
+            min-width: 40px;
+            text-align: right;
+        }
+        input[type="range"] {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 100%;
+            height: 4px;
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 2px;
+            outline: none;
+            cursor: pointer;
+        }
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 16px;
+            height: 16px;
+            background: #fff;
+            border-radius: 50%;
+            cursor: pointer;
+            transition: background 0.2s ease;
+        }
+        input[type="range"]::-moz-range-thumb {
+            width: 16px;
+            height: 16px;
+            background: #fff;
+            border-radius: 50%;
+            cursor: pointer;
+            transition: background 0.2s ease;
+        }
+        input[type="range"]:active::-webkit-slider-thumb,
+        input[type="range"]:active::-moz-range-thumb {
+            background: #ccc;
+        }
+        
+        .toggle-container {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 0.9rem;
+        }
+        
+        /* Simple Toggle Switch */
+        .switch {
+          position: relative;
+          display: inline-block;
+          width: 40px;
+          height: 24px;
+        }
+        .switch input { 
+          opacity: 0;
+          width: 0;
+          height: 0;
+        }
+        .slider {
+          position: absolute;
+          cursor: pointer;
+          top: 0;
+          left: 0;
+          right: 0;
+          bottom: 0;
+          background-color: #ccc;
+          transition: .4s;
+          border-radius: 24px;
+        }
+        .slider:before {
+          position: absolute;
+          content: "";
+          height: 16px;
+          width: 16px;
+          left: 4px;
+          bottom: 4px;
+          background-color: white;
+          transition: .4s;
+          border-radius: 50%;
+        }
+        input:checked + .slider {
+          background-color: #4A90E2;
+        }
+        input:checked + .slider:before {
+          transform: translateX(16px);
+        }
+
+        .button-group {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+        button {
+            background-color: #4A90E2;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            padding: 12px;
+            font-size: 0.9rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background-color 0.2s ease;
+            text-align: center;
+        }
+        button:hover {
+            background-color: #357ABD;
+        }
+        button:active {
+            background-color: #2a6194;
+        }
+        button.secondary {
+            background-color: rgba(255, 255, 255, 0.15);
+        }
+        button.secondary:hover {
+            background-color: rgba(255, 255, 255, 0.25);
+        }
+        button.secondary:active {
+            background-color: rgba(255, 255, 255, 0.3);
+        }
+        
+        #export-status {
+            font-size: 0.8rem;
+            color: #999;
+            text-align: center;
+            height: 1em;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- WebGL Canvas: Semantic role img assigned for accessibility -->
+    <canvas id="glcanvas" role="img" aria-label="Interactive generative art visualization"></canvas>
+
+    <!-- Settings Panel Toggle: Role button added for accessibility -->
+    <div id="settings-toggle" role="button" aria-label="Open Settings" tabindex="0">
+        <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true" width="24" height="24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path>
+            <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
+        </svg>
+    </div>
+
+    <!-- Settings Panel: Upgraded to semantic aside tag -->
+    <aside id="settings-panel" aria-label="Controls">
+        <div class="settings-content">
+            <h2>Controls</h2>
+
+            <div class="button-group">
+                <button id="randomize-all-btn">Randomize All Settings</button>
+                <button id="randomize-colors-btn" class="secondary">Randomize Colors</button>
+            </div>
+
+            <div class="control-group">
+                <h3>Shape & Complexity</h3>
+                <div class="slider-container" id="layer-count-slider">
+                    <label class="slider-label" for="layer-count">
+                        <span>Layer Count</span>
+                        <span class="value" id="layer-count-value">5</span>
+                    </label>
+                    <input type="range" id="layer-count" name="layer-count" min="1" max="10" step="1" value="5">
+                </div>
+                <div class="slider-container" id="arm-count-slider">
+                    <label class="slider-label" for="arm-count">
+                        <span>Arm Count</span>
+                        <span class="value" id="arm-count-value">4.0</span>
+                    </label>
+                    <input type="range" id="arm-count" name="arm-count" min="1" max="12" step="0.1" value="4.0">
+                </div>
+                <div class="slider-container" id="warp-freq-slider">
+                    <label class="slider-label" for="warp-freq">
+                        <span>Warp Frequency</span>
+                        <span class="value" id="warp-freq-value">12.0</span>
+                    </label>
+                    <input type="range" id="warp-freq" name="warp-freq" min="0" max="40" step="0.1" value="12.0">
+                </div>
+                 <div class="slider-container" id="warp-amp-slider">
+                    <label class="slider-label" for="warp-amp">
+                        <span>Warp Amount</span>
+                        <span class="value" id="warp-amp-value">0.3</span>
+                    </label>
+                    <input type="range" id="warp-amp" name="warp-amp" min="0" max="2" step="0.01" value="0.3">
+                </div>
+            </div>
+            
+            <div class="control-group">
+                <h3>Animation</h3>
+                <div class="slider-container" id="layer-speed-slider">
+                    <label class="slider-label" for="layer-speed">
+                        <span>Layer Speed</span>
+                        <span class="value" id="layer-speed-value">0.02</span>
+                    </label>
+                    <input type="range" id="layer-speed" name="layer-speed" min="0" max="0.1" step="0.001" value="0.02">
+                </div>
+                <div class="slider-container" id="pulse-speed-slider">
+                    <label class="slider-label" for="pulse-speed">
+                        <span>Pulse Speed</span>
+                        <span class="value" id="pulse-speed-value">0.3</span>
+                    </label>
+                    <input type="range" id="pulse-speed" name="pulse-speed" min="0" max="2" step="0.01" value="0.3">
+                </div>
+                <div class="slider-container" id="twist-freq-slider">
+                    <label class="slider-label" for="twist-freq">
+                        <span>Twist Frequency</span>
+                        <span class="value" id="twist-freq-value">3.0</span>
+                    </label>
+                    <input type="range" id="twist-freq" name="twist-freq" min="0" max="10" step="0.1" value="3.0">
+                </div>
+                <div class="slider-container" id="twist-speed-slider">
+                    <label class="slider-label" for="twist-speed">
+                        <span>Twist Speed</span>
+                        <span class="value" id="twist-speed-value">0.4</span>
+                    </label>
+                    <input type="range" id="twist-speed" name="twist-speed" min="0" max="2" step="0.01" value="0.4">
+                </div>
+            </div>
+
+            <div class="control-group">
+                <h3>Color & Appearance</h3>
+                <div class="slider-container" id="brightness-slider">
+                    <label class="slider-label" for="brightness">
+                        <span>Brightness</span>
+                        <span class="value" id="brightness-value">0.02</span>
+                    </label>
+                    <input type="range" id="brightness" name="brightness" min="0.005" max="0.1" step="0.001" value="0.02">
+                </div>
+                <div class="slider-container" id="contrast-slider">
+                    <label class="slider-label" for="contrast">
+                        <span>Contrast</span>
+                        <span class="value" id="contrast-value">0.8</span>
+                    </label>
+                    <input type="range" id="contrast" name="contrast" min="0.1" max="2.5" step="0.01" value="0.8">
+                </div>
+                <div class="slider-container" id="fade-slider">
+                    <label class="slider-label" for="fade">
+                        <span>Radial Fade</span>
+                        <span class="value" id="fade-value">0.9</span>
+                    </label>
+                    <input type="range" id="fade" name="fade" min="0.1" max="3" step="0.01" value="0.9">
+                </div>
+            </div>
+
+            <div class="control-group">
+                <h3>Interaction & Position</h3>
+                <div class="toggle-container">
+                    <span>Mouse Interaction</span>
+                    <label class="switch">
+                        <input type="checkbox" id="mouse-toggle" checked>
+                        <span class="slider"></span>
+                    </label>
+                </div>
+                <div class="slider-container" id="mouse-strength-slider">
+                    <label class="slider-label" for="mouse-strength">
+                        <span>Mouse Strength</span>
+                        <span class="value" id="mouse-strength-value">0.5</span>
+                    </label>
+                    <input type="range" id="mouse-strength" name="mouse-strength" min="0" max="2" step="0.01" value="0.5">
+                </div>
+                <div class="slider-container" id="mouse-radius-slider">
+                    <label class="slider-label" for="mouse-radius">
+                        <span>Mouse Radius</span>
+                        <span class="value" id="mouse-radius-value">0.7</span>
+                    </label>
+                    <input type="range" id="mouse-radius" name="mouse-radius" min="0.1" max="2" step="0.01" value="0.7">
+                </div>
+                <div class="slider-container" id="center-x-slider">
+                    <label class="slider-label" for="center-x">
+                        <span>Center X</span>
+                        <span class="value" id="center-x-value">0.0</span>
+                    </label>
+                    <input type="range" id="center-x" name="center-x" min="-1" max="1" step="0.01" value="0.0">
+                </div>
+                <div class="slider-container" id="center-y-slider">
+                    <label class="slider-label" for="center-y">
+                        <span>Center Y</span>
+                        <span class="value" id="center-y-value">0.0</span>
+                    </label>
+                    <input type="range" id="center-y" name="center-y" min="-1" max="1" step="0.01" value="0.0">
+                </div>
+            </div>
+            
+            <div class="control-group">
+                <h3>Export</h3>
+                <button id="export-btn">Save 4K Wallpaper</button>
+                <div id="export-status"></div>
+            </div>
+
+        </div>
+    </aside>
+
+<!-- 
+    Vertex Shader
+    Simple pass-through shader for a 2D plane
+-->
+<script id="vertex-shader" type="x-shader/x-vertex">
+    attribute vec2 a_position;
+    void main() {
+        gl_Position = vec4(a_position, 0.0, 1.0);
+    }
+</script>
+
+<!-- 
+    Fragment Shader
+    Where all the magic happens!
+-->
+<script id="fragment-shader" type="x-shader/x-fragment">
+    #ifdef GL_ES
+    precision highp float;
+    #endif
+
+    /* --- Uniforms (from JavaScript) --- */
+    uniform vec2 u_resolution;
+    uniform vec2 u_mouse;
+    uniform float u_time;
+    
+    /* NEW: All the config sliders */
+    uniform float u_arm_count;
+    uniform float u_twist_amplitude;
+    uniform float u_brightness;
+    uniform float u_contrast;
+    uniform bool u_mouse_enabled;
+    uniform float u_mouse_strength;
+    uniform float u_mouse_radius;
+    uniform float u_layer_speed;
+    uniform float u_pulse_speed;
+    uniform float u_twist_freq;
+    uniform float u_twist_speed;
+    uniform float u_warp_amp;
+    uniform float u_warp_freq;
+    uniform float u_fade;
+    uniform float u_layer_count;
+    uniform vec2 u_center_offset;
+
+    /* NEW: Randomized Color Palette */
+    uniform vec3 u_color_a;
+    uniform vec3 u_color_b;
+    uniform vec3 u_color_c;
+    uniform vec3 u_color_d;
+    
+    /*
+     * 1. Dynamic Color Palette Function
+     * Uses 4 vec3 colors (a, b, c, d) to create a cosine-based palette
+     * This is what creates the smooth, rich color gradients.
+     */
+    vec3 palette(float t) {
+        return u_color_a + u_color_b * cos(6.28318 * (u_color_c * t + u_color_d));
+    }
+
+    /*
+     * 2. Main Shader Logic
+     */
+    void main() {
+        /* * 1. Coordinate System Setup
+         * - Normalize coordinates to -1.0 to 1.0
+         * - Correct for aspect ratio
+         * - Apply center offset
+         */
+        vec2 st = (gl_FragCoord.xy / u_resolution.xy) * 2.0 - 1.0;
+        st.x *= u_resolution.x / u_resolution.y;
+        st -= u_center_offset; /* Apply new center offset */
+
+        /* * 2. Mouse Interaction
+         * - Calculate distance to mouse
+         * - "Push" coordinates away from the mouse
+         */
+        vec2 mouse_st = vec2(u_mouse.x, u_resolution.y - u_mouse.y) / u_resolution.xy;
+        mouse_st = (mouse_st * 2.0 - 1.0) * vec2(1.0, -1.0);
+        mouse_st.x *= u_resolution.x / u_resolution.y;
+        mouse_st -= u_center_offset; /* Apply offset to mouse as well */
+        
+        vec2 mouse_vec = st - mouse_st;
+        float mouse_dist = length(mouse_vec);
+        float mouse_push = smoothstep(u_mouse_radius, 0.0, mouse_dist) * u_mouse_strength;
+        
+        if (u_mouse_enabled && u_mouse.x > 0.0) {
+            st += normalize(mouse_vec) * mouse_push;
+        }
+
+        /*
+         * 3. Global Twist
+         * - Apply a global "twist" to the whole canvas based on distance from center
+         */
+        float R_global = length(st);
+        float angle_global = atan(st.y, st.x);
+        float twist = u_twist_amplitude * sin(R_global * u_twist_freq - u_time * u_twist_speed);
+        st *= mat2(cos(twist), sin(twist), -sin(twist), cos(twist));
+
+        
+        vec3 color = vec3(0.0);
+        
+        /* * 4. Layered Spirals Loop
+         * Iterate to create multiple layers of spirals
+         */
+        /* Use a constant loop and break early (WebGL 1.0 limitation) */
+        for (float i = 1.0; i < 11.0; i++) { /* Max 10 layers */
+            /* Break if we're past the user-defined layer count */
+            if (i > u_layer_count) {
+                break;
+            }
+            
+            vec2 st0 = st;
+            float sgn = 1.0 - 2.0 * mod(i, 2.0); /* Alternates sign */
+            
+            /* Rotate this layer based on time */
+            float t = u_time * u_layer_speed - float(i);
+            st0 *= mat2(cos(t), sin(t), -sin(t), cos(t));
+            
+            float R = length(st0);
+            float d = R * i;
+            float angle = atan(st0.y, st0.x);
+            
+            /* Create spiral arms */
+            float angle_warped = angle * u_arm_count;
+            
+            /* Add "wiggles" to the arms */
+            float dist_warp_factor = 1.0 + u_warp_amp * sin(angle * u_warp_freq + u_time * 0.5 - i);
+            float d_warped = d * dist_warp_factor;
+            
+            /* Get color from palette */
+            vec3 pal = palette(-exp((length(d_warped) * -u_fade)));
+            
+            /* Add radial falloff */
+            float radial = exp(-R);
+            radial *= smoothstep(1.2, 0.5, R); /* Clamp the bright center */
+            pal *= radial;
+            
+            /* Create the pulsing "veins" */
+            float phase = -(d_warped + sgn * angle_warped) + u_time * u_pulse_speed;
+            
+            float v = sin(phase);
+            v = max(abs(v), 0.001); /* Avoid divide by zero */
+            
+            /* * This is the magic line: 
+             * pow(BRIGHTNESS / v, CONTRAST)
+             * Small brightness = thin lines
+             * High contrast = sharp lines
+             */
+            float w = pow(u_brightness / v, u_contrast);
+            color += pal * w;
+        }
+
+        /* Final Output */
+        gl_FragColor = vec4(color, 1.0);
+    }
+</script>
+
+<!-- 
+    Main JavaScript
+    Handles WebGL setup, UI, and animation loop
+-->
+<script>
+    /* --- Main App Setup --- */
+    const canvas = document.getElementById('glcanvas');
+    const gl = canvas.getContext('webgl');
+    if (!gl) {
+        console.error("WebGL not supported, falling back on experimental-webgl");
+        gl = canvas.getContext("experimental-webgl");
+    }
+    if (!gl) {
+        alert("Your browser does not support WebGL");
+    }
+
+    /* --- WebGL Utils --- */
+    function getShaderSource(id) {
+        return document.getElementById(id).textContent;
+    }
+
+    function createShader(gl, type, source) {
+        const shader = gl.createShader(type);
+        gl.shaderSource(shader, source);
+        gl.compileShader(shader);
+        if (!gl.getShaderParameter(shader, gl.COMPILE_STATUS)) {
+            console.error('An error occurred compiling the shaders:', gl.getShaderInfoLog(shader));
+            gl.deleteShader(shader);
+            return null;
+        }
+        return shader;
+    }
+
+    function createProgram(gl, vertexShader, fragmentShader) {
+        const program = gl.createProgram();
+        gl.attachShader(program, vertexShader);
+        gl.attachShader(program, fragmentShader);
+        gl.linkProgram(program);
+        if (!gl.getProgramParameter(program, gl.LINK_STATUS)) {
+            console.error('Unable to initialize the shader program:', gl.getProgramInfoLog(program));
+            return null;
+        }
+        return program;
+    }
+
+    /* --- WebGL Program Initialization --- */
+    const vertexShaderSource = getShaderSource('vertex-shader');
+    const fragmentShaderSource = getShaderSource('fragment-shader');
+    const vertexShader = createShader(gl, gl.VERTEX_SHADER, vertexShaderSource);
+    const fragmentShader = createShader(gl, gl.FRAGMENT_SHADER, fragmentShaderSource);
+    const program = createProgram(gl, vertexShader, fragmentShader);
+
+    /* --- Vertex Buffer (for the screen quad) --- */
+    const positionBuffer = gl.createBuffer();
+    gl.bindBuffer(gl.ARRAY_BUFFER, positionBuffer);
+    const positions = [-1.0, -1.0, 1.0, -1.0, -1.0, 1.0, 1.0, 1.0];
+    gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(positions), gl.STATIC_DRAW);
+    const positionLocation = gl.getAttribLocation(program, 'a_position');
+    gl.enableVertexAttribArray(positionLocation);
+    gl.vertexAttribPointer(positionLocation, 2, gl.FLOAT, false, 0, 0);
+
+    gl.useProgram(program);
+
+    /* --- Uniform Locations --- */
+    const resolutionLocation = gl.getUniformLocation(program, 'u_resolution');
+    const timeLocation = gl.getUniformLocation(program, 'u_time');
+    const mouseLocation = gl.getUniformLocation(program, 'u_mouse');
+    
+    // Get locations for all our new uniforms
+    const uniformLocations = {
+        armCount: gl.getUniformLocation(program, 'u_arm_count'),
+        twistAmplitude: gl.getUniformLocation(program, 'u_twist_amplitude'),
+        brightness: gl.getUniformLocation(program, 'u_brightness'),
+        contrast: gl.getUniformLocation(program, 'u_contrast'),
+        mouseEnabled: gl.getUniformLocation(program, 'u_mouse_enabled'),
+        mouseStrength: gl.getUniformLocation(program, 'u_mouse_strength'),
+        mouseRadius: gl.getUniformLocation(program, 'u_mouse_radius'),
+        layerSpeed: gl.getUniformLocation(program, 'u_layer_speed'),
+        pulseSpeed: gl.getUniformLocation(program, 'u_pulse_speed'),
+        twistFreq: gl.getUniformLocation(program, 'u_twist_freq'),
+        twistSpeed: gl.getUniformLocation(program, 'u_twist_speed'),
+        warpAmp: gl.getUniformLocation(program, 'u_warp_amp'),
+        warpFreq: gl.getUniformLocation(program, 'u_warp_freq'),
+        fade: gl.getUniformLocation(program, 'u_fade'),
+        layerCount: gl.getUniformLocation(program, 'u_layer_count'),
+        centerOffset: gl.getUniformLocation(program, 'u_center_offset'),
+        colorA: gl.getUniformLocation(program, 'u_color_a'),
+        colorB: gl.getUniformLocation(program, 'u_color_b'),
+        colorC: gl.getUniformLocation(program, 'u_color_c'),
+        colorD: gl.getUniformLocation(program, 'u_color_d'),
+    };
+
+    /* --- App State --- */
+    let mouseX = -1.0;
+    let mouseY = -1.0;
+    let devicePixelRatio = Math.min(window.devicePixelRatio || 1, 2);
+    let isExporting = false;
+    let mainLoopRequest = null;
+    let settings = {}; // All our settings will live here
+    
+    // Color state
+    let colorA, colorB, colorC, colorD;
+
+    /* --- UI Element Cache --- */
+    const ui = {
+        panel: document.getElementById('settings-panel'),
+        toggle: document.getElementById('settings-toggle'),
+        exportBtn: document.getElementById('export-btn'),
+        exportStatus: document.getElementById('export-status'),
+        randomizeAllBtn: document.getElementById('randomize-all-btn'),
+        randomizeColorsBtn: document.getElementById('randomize-colors-btn'),
+        
+        // All slider inputs
+        sliders: {
+            armCount: document.getElementById('arm-count'),
+            twistAmplitude: document.getElementById('twist-freq'), // Renamed slider in HTML
+            brightness: document.getElementById('brightness'),
+            contrast: document.getElementById('contrast'),
+            mouseStrength: document.getElementById('mouse-strength'),
+            mouseRadius: document.getElementById('mouse-radius'),
+            layerSpeed: document.getElementById('layer-speed'),
+            pulseSpeed: document.getElementById('pulse-speed'),
+            twistFreq: document.getElementById('twist-freq'),
+            twistSpeed: document.getElementById('twist-speed'),
+            warpAmp: document.getElementById('warp-amp'),
+            warpFreq: document.getElementById('warp-freq'),
+            fade: document.getElementById('fade'),
+            layerCount: document.getElementById('layer-count'),
+            centerX: document.getElementById('center-x'),
+            centerY: document.getElementById('center-y'),
+        },
+        
+        // All slider value labels
+        values: {
+            armCount: document.getElementById('arm-count-value'),
+            twistAmplitude: document.getElementById('twist-freq-value'), // Renamed
+            brightness: document.getElementById('brightness-value'),
+            contrast: document.getElementById('contrast-value'),
+            mouseStrength: document.getElementById('mouse-strength-value'),
+            mouseRadius: document.getElementById('mouse-radius-value'),
+            layerSpeed: document.getElementById('layer-speed-value'),
+            pulseSpeed: document.getElementById('pulse-speed-value'),
+            twistFreq: document.getElementById('twist-freq-value'),
+            twistSpeed: document.getElementById('twist-speed-value'),
+            warpAmp: document.getElementById('warp-amp-value'),
+            warpFreq: document.getElementById('warp-freq-value'),
+            fade: document.getElementById('fade-value'),
+            layerCount: document.getElementById('layer-count-value'),
+            centerX: document.getElementById('center-x-value'),
+            centerY: document.getElementById('center-y-value'),
+        },
+        
+        // Toggles
+        mouseToggle: document.getElementById('mouse-toggle'),
+    };
+
+    /* --- Randomization Functions --- */
+
+    function rand(min, max, isFloat = false) {
+        const val = Math.random() * (max - min) + min;
+        return isFloat ? val : Math.floor(val);
+    }
+    
+    function randVec3() {
+        return [Math.random(), Math.random(), Math.random()];
+    }
+    
+    function randomizeColors() {
+        // Based on the palette function, we need 4 vec3s
+        // We'll set them to typical ranges that look good
+        colorA = [rand(0.4, 0.6, true), rand(0.4, 0.6, true), rand(0.4, 0.6, true)];
+        colorB = [rand(0.4, 0.6, true), rand(0.4, 0.6, true), rand(0.4, 0.6, true)];
+        colorC = [rand(0.8, 1.2, true), rand(0.8, 1.2, true), rand(0.8, 1.2, true)];
+        colorD = [rand(0.0, 0.4, true), rand(0.1, 0.5, true), rand(0.2, 0.6, true)];
+    }
+    
+    function randomizeSettings() {
+        // Loop through all sliders and set a random value
+        Object.keys(ui.sliders).forEach(key => {
+            const slider = ui.sliders[key];
+            if (slider) {
+                const min = parseFloat(slider.min);
+                const max = parseFloat(slider.max);
+                const step = parseFloat(slider.step);
+                
+                let randomValue = rand(min, max, true);
+                
+                // Align to step
+                if (step < 1) {
+                    randomValue = parseFloat(randomValue.toFixed(String(step).split('.')[1]?.length || 2));
+                } else {
+                    randomValue = Math.round(randomValue / step) * step;
+                }
+                
+                // Ensure it's within bounds after rounding
+                randomValue = Math.max(min, Math.min(max, randomValue));
+                
+                slider.value = randomValue;
+            }
+        });
+        
+        // Randomize toggle
+        ui.mouseToggle.checked = Math.random() > 0.3; // Usually on
+        
+        // Randomize colors
+        randomizeColors();
+        
+        // Apply all new settings
+        updateSettings();
+    }
+
+
+    /* --- Settings & UI Logic --- */
+    
+    // Update settings object from UI
+    function updateSettings() {
+        for (const [key, slider] of Object.entries(ui.sliders)) {
+            if (slider) {
+                const value = parseFloat(slider.value);
+                settings[key] = value;
+                
+                // Update label
+                if (ui.values[key]) {
+                    // Format value nicely
+                    let displayValue = value.toFixed(2);
+                    if (value === parseInt(value)) displayValue = value.toString(); // Show 5.0 as 5
+                    else if (Math.abs(value) < 1) displayValue = value.toFixed(2); // Show 0.30
+                    else displayValue = value.toFixed(1); // Show 12.5
+                    
+                    if (key === 'layerCount') displayValue = value.toFixed(0);
+
+                    ui.values[key].textContent = displayValue;
+                }
+            }
+        }
+        
+        settings.mouseEnabled = ui.mouseToggle.checked;
+    }
+
+    // Bind UI elements
+    function setupUI() {
+        // Toggle panel
+        ui.toggle.addEventListener('click', () => {
+            ui.panel.classList.toggle('open');
+            ui.toggle.classList.toggle('open');
+        });
+        
+        // Update settings on change
+        Object.values(ui.sliders).forEach(slider => {
+            if (slider) slider.addEventListener('input', updateSettings);
+        });
+        ui.mouseToggle.addEventListener('change', updateSettings);
+        
+        // Randomize buttons
+        ui.randomizeAllBtn.addEventListener('click', randomizeSettings);
+        ui.randomizeColorsBtn.addEventListener('click', () => {
+            randomizeColors();
+            updateSettings(); // To apply
+        });
+
+        // Export button
+        ui.exportBtn.addEventListener('click', () => {
+            if (isExporting) return;
+            isExporting = true;
+            ui.exportStatus.textContent = 'Preparing 4K render...';
+            // Use requestAnimationFrame to let the UI update
+            requestAnimationFrame(() => {
+                export4K();
+            });
+        });
+        
+        // Initialize all settings on load
+        randomizeSettings();
+    }
+
+    /* --- Event Listeners --- */
+    function setupEventListeners() {
+        // Mouse
+        window.addEventListener('mousemove', (e) => {
+            if (!settings.mouseEnabled) return;
+            mouseX = e.clientX;
+            mouseY = e.clientY;
+        });
+        
+        // Touch
+        window.addEventListener('touchstart', (e) => {
+            if (!settings.mouseEnabled) return;
+            if (e.touches.length > 0) {
+                mouseX = e.touches[0].clientX;
+                mouseY = e.touches[0].clientY;
+            }
+        }, { passive: false });
+        
+        window.addEventListener('touchmove', (e) => {
+            if (!settings.mouseEnabled) return;
+            e.preventDefault(); // Prevent scrolling
+            if (e.touches.length > 0) {
+                mouseX = e.touches[0].clientX;
+                mouseY = e.touches[0].clientY;
+            }
+        }, { passive: false });
+
+        // Resize
+        window.addEventListener('resize', resize);
+    }
+
+    // --- Resize Handler ---
+    function resize() {
+        devicePixelRatio = Math.min(window.devicePixelRatio || 1, 2);
+        
+        // Only resize if we're not exporting
+        if (!isExporting) {
+            canvas.width = Math.floor(window.innerWidth * devicePixelRatio);
+            canvas.height = Math.floor(window.innerHeight * devicePixelRatio);
+            
+            gl.viewport(0, 0, gl.drawingBufferWidth, gl.drawingBufferHeight);
+
+            /* --- THIS IS THE FIX --- */
+            /* Set the CSS size to fill the window */
+            canvas.style.width = window.innerWidth + "px";
+            canvas.style.height = window.innerHeight + "px";
+        }
+    }
+
+    /* --- 4K Export Function --- */
+    function export4K() {
+        console.log('Starting 4K export...');
+        
+        // 1. Get current time (so it matches the animation)
+        const exportTime = performance.now() * 0.001;
+        
+        // 2. Stop the main render loop
+        if (mainLoopRequest) {
+            cancelAnimationFrame(mainLoopRequest);
+            mainLoopRequest = null;
+        }
+
+        // 3. Resize canvas to 4K (3840 x 2160)
+        const oldWidth = canvas.width;
+        const oldHeight = canvas.height;
+        const exportWidth = 3840;
+        const exportHeight = 2160;
+
+        canvas.width = exportWidth;
+        canvas.height = exportHeight;
+        gl.viewport(0, 0, exportWidth, exportHeight);
+        
+        // 4. Set uniforms for this single 4K frame
+        gl.uniform2f(resolutionLocation, exportWidth, exportHeight);
+        gl.uniform1f(timeLocation, exportTime);
+        gl.uniform2f(mouseLocation, -1, -1); // No mouse for wallpaper
+        
+        // Set all other uniforms
+        setAllUniforms(exportTime); // Use the captured time
+        
+        // Special case: Disable mouse for the render
+        gl.uniform1i(uniformLocations.mouseEnabled, 0); 
+        
+        // 5. Draw the single 4K frame
+        gl.clearColor(0, 0, 0, 1);
+        gl.clear(gl.COLOR_BUFFER_BIT);
+        gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+
+        // 6. Read data from canvas and create a link
+        const dataURL = canvas.toDataURL('image/png');
+        const link = document.createElement('a');
+        link.download = `shader_wallpaper_${Date.now()}.png`;
+        link.href = dataURL;
+        link.click();
+        
+        ui.exportStatus.textContent = 'Wallpaper saved!';
+        setTimeout(() => { ui.exportStatus.textContent = ''; }, 3000);
+
+        // 7. Restore canvas to original size
+        canvas.width = oldWidth;
+        canvas.height = oldHeight;
+        gl.viewport(0, 0, oldWidth, oldHeight);
+        
+        // 8. Restore CSS size
+        canvas.style.width = window.innerWidth + "px";
+        canvas.style.height = window.innerHeight + "px";
+
+        // 9. Restart main render loop
+        isExporting = false;
+        mainLoopRequest = requestAnimationFrame(render);
+        console.log('Export finished, resuming animation.');
+    }
+
+    /* --- Main Render Loop --- */
+    
+    // Helper to send all settings to the GPU
+    function setAllUniforms(time) {
+        gl.uniform1f(timeLocation, time);
+        
+        // Mouse/Touch
+        const canvasRect = canvas.getBoundingClientRect();
+        const mX = (mouseX - canvasRect.left) * devicePixelRatio;
+        const mY = (mouseY - canvasRect.top) * devicePixelRatio;
+        gl.uniform2f(mouseLocation, mX, mY);
+
+        // Sliders
+        gl.uniform1f(uniformLocations.armCount, settings.armCount);
+        gl.uniform1f(uniformLocations.twistAmplitude, settings.twistAmplitude);
+        gl.uniform1f(uniformLocations.brightness, settings.brightness);
+        gl.uniform1f(uniformLocations.contrast, settings.contrast);
+        gl.uniform1i(uniformLocations.mouseEnabled, settings.mouseEnabled);
+        gl.uniform1f(uniformLocations.mouseStrength, settings.mouseStrength);
+        gl.uniform1f(uniformLocations.mouseRadius, settings.mouseRadius);
+        gl.uniform1f(uniformLocations.layerSpeed, settings.layerSpeed);
+        gl.uniform1f(uniformLocations.pulseSpeed, settings.pulseSpeed);
+        gl.uniform1f(uniformLocations.twistFreq, settings.twistFreq);
+        gl.uniform1f(uniformLocations.twistSpeed, settings.twistSpeed);
+        gl.uniform1f(uniformLocations.warpAmp, settings.warpAmp);
+        gl.uniform1f(uniformLocations.warpFreq, settings.warpFreq);
+        gl.uniform1f(uniformLocations.fade, settings.fade);
+        gl.uniform1f(uniformLocations.layerCount, settings.layerCount);
+        gl.uniform2f(uniformLocations.centerOffset, settings.centerX, settings.centerY);
+
+        // Colors
+        gl.uniform3fv(uniformLocations.colorA, colorA);
+        gl.uniform3fv(uniformLocations.colorB, colorB);
+        gl.uniform3fv(uniformLocations.colorC, colorC);
+        gl.uniform3fv(uniformLocations.colorD, colorD);
+    }
+    
+    function render(time) {
+        if (isExporting) {
+            // Don't render while an export is happening
+            mainLoopRequest = requestAnimationFrame(render);
+            return;
+        }
+
+        const timeInSeconds = time * 0.001;
+        
+        // 1. Set global uniforms
+        gl.uniform2f(resolutionLocation, canvas.width, canvas.height);
+        
+        // 2. Set all settings uniforms
+        setAllUniforms(timeInSeconds);
+
+        // 3. Clear and Draw
+        gl.clearColor(0, 0, 0, 1);
+        gl.clear(gl.COLOR_BUFFER_BIT);
+        gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+        
+        // 4. Loop
+        mainLoopRequest = requestAnimationFrame(render);
+    }
+
+    /* --- App Start --- */
+    setupUI();
+    setupEventListeners();
+    resize(); // Call once to set initial size
+    mainLoopRequest = requestAnimationFrame(render); // Start the loop
+
+</script>
+
+</body>
+</html>
